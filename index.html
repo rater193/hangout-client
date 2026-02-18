@@ -3,37 +3,1758 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discord-like Hangout App</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Hangout - Community Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-bg: #36393f;
+            --secondary-bg: #2f3136;
+            --tertiary-bg: #202225;
+            --channel-bg: #2f3136;
+            --hover-bg: #3c3f45;
+            --text-primary: #dcddde;
+            --text-secondary: #99aab5;
+            --text-muted: #72767d;
+            --accent: #7289da;
+            --accent-hover: #8399e8;
+            --online: #43b581;
+            --idle: #faa61a;
+            --dnd: #f04747;
+            --offline: #747f8d;
+            --separator: #202225;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--tertiary-bg);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            background: var(--tertiary-bg);
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 72px;
+            background: var(--tertiary-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 0;
+            border-right: 1px solid var(--separator);
+            overflow-y: auto;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--channel-bg);
+            border-radius: 4px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: var(--hover-bg);
+        }
+
+        .server-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--channel-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 8px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            font-weight: bold;
+            font-size: 20px;
+            color: var(--accent);
+            border: none;
+        }
+
+        .server-icon:hover {
+            border-radius: 30%;
+            transform: scale(1.05);
+            background: var(--accent);
+            color: white;
+        }
+
+        .server-icon.active {
+            border-radius: 30%;
+            background: var(--accent);
+            color: white;
+        }
+
+        .server-icon.home {
+            background: var(--accent);
+            color: white;
+        }
+
+        .server-icon.add {
+            background: transparent;
+            border: 2px dashed var(--accent);
+            font-size: 28px;
+            color: var(--accent);
+        }
+
+        .server-icon.add:hover {
+            background: var(--accent);
+            color: white;
+            border: none;
+        }
+
+        .server-separator {
+            width: 32px;
+            height: 2px;
+            background: var(--separator);
+            margin: 8px 0;
+            border-radius: 1px;
+        }
+
+        /* ===== SERVER PANEL ===== */
+        .server-panel {
+            width: 240px;
+            background: var(--secondary-bg);
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--separator);
+        }
+
+        .server-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--separator);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .server-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            flex: 1;
+        }
+
+        .server-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+        }
+
+        .channels-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+
+        .channels-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .channels-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .channels-container::-webkit-scrollbar-thumb {
+            background: var(--channel-bg);
+            border-radius: 4px;
+        }
+
+        .channels-container::-webkit-scrollbar-thumb:hover {
+            background: var(--hover-bg);
+        }
+
+        .channel-category {
+            padding: 0 8px;
+            margin-top: 16px;
+        }
+
+        .category-header {
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .category-header:hover {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+        }
+
+        .category-icon {
+            transition: transform 0.2s;
+        }
+
+        .category-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .category-add {
+            opacity: 0;
+            transition: opacity 0.2s;
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0 4px;
+            font-size: 12px;
+        }
+
+        .category-header:hover .category-add {
+            opacity: 1;
+        }
+
+        .channel {
+            padding: 8px 12px;
+            margin: 0 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-size: 15px;
+        }
+
+        .channel:hover {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+        }
+
+        .channel.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .channel-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--primary-bg);
+        }
+
+        /* ===== HOME VIEW ===== */
+        .home-view {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .home-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--separator);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .home-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .home-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px 24px;
+            overflow-y: auto;
+        }
+
+        .section {
+            background: var(--secondary-bg);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--separator);
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .section-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .section-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .server-item, .friend-item {
+            padding: 12px;
+            background: var(--channel-bg);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .server-item:hover, .friend-item:hover {
+            background: var(--hover-bg);
+        }
+
+        .server-item-icon, .friend-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .server-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .server-item-name, .friend-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .server-item-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .friend-status {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            position: absolute;
+            bottom: 0;
+            right: 0;
+        }
+
+        .friend-status.online {
+            background: var(--online);
+        }
+
+        .friend-status.idle {
+            background: var(--idle);
+        }
+
+        .friend-status.dnd {
+            background: var(--dnd);
+        }
+
+        /* ===== CHANNEL VIEW ===== */
+        .channel-view {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .channel-header {
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--separator);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 50px;
+        }
+
+        .channel-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .channel-type-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 18px;
+        }
+
+        .channel-topic {
+            font-size: 13px;
+            color: var(--text-secondary);
+            max-width: 500px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .channel-actions {
+            display: flex;
+            gap: 16px;
+        }
+
+        /* ===== MESSAGES ===== */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            padding: 16px 24px;
+            gap: 8px;
+        }
+
+        .messages-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+            background: var(--channel-bg);
+            border-radius: 4px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: var(--hover-bg);
+        }
+
+        .message-group {
+            display: flex;
+            gap: 12px;
+            padding: 8px 0;
+        }
+
+        .message-group.compact {
+            padding: 2px 0;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+
+        .message-group.compact .message-avatar {
+            opacity: 0;
+            width: 0;
+            margin: 0;
+        }
+
+        .messages-content {
+            flex: 1;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .message-author {
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 15px;
+        }
+
+        .message-timestamp {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+
+        .message-text {
+            color: var(--text-primary);
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .message-group:hover {
+            background: rgba(79, 84, 92, 0.4);
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin: 0 -12px;
+        }
+
+        /* ===== MESSAGE INPUT ===== */
+        .message-input-container {
+            padding: 16px 24px 24px 24px;
+            border-top: 1px solid var(--separator);
+        }
+
+        .message-input-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .input-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 18px;
+        }
+
+        .input-btn:hover {
+            color: var(--accent);
+        }
+
+        .input-field {
+            flex: 1;
+            background: var(--channel-bg);
+            border: 1px solid var(--separator);
+            border-radius: 20px;
+            padding: 10px 16px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 15px;
+            resize: none;
+            max-height: 100px;
+            min-height: 40px;
+        }
+
+        .input-field::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* ===== DM PANEL ===== */
+        .dm-panel {
+            display: none;
+            flex-direction: column;
+            width: 240px;
+            background: var(--secondary-bg);
+            border-right: 1px solid var(--separator);
+        }
+
+        .dm-panel.active {
+            display: flex;
+        }
+
+        .dm-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--separator);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dm-header-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .dm-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+
+        .dm-item {
+            padding: 8px 12px;
+            margin: 0 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+            font-size: 15px;
+            position: relative;
+        }
+
+        .dm-item:hover {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+        }
+
+        .dm-item.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .dm-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .dm-avatar .status-indicator {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid var(--secondary-bg);
+        }
+
+        .dm-item.active .dm-avatar .status-indicator {
+            border-color: var(--accent);
+        }
+
+        /* ===== MODALS ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--secondary-bg);
+            border-radius: 8px;
+            padding: 0;
+            width: 440px;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--separator);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .modal-content {
+            padding: 24px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 24px;
+            border-top: 1px solid var(--separator);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--channel-bg);
+            border: 1px solid var(--separator);
+            border-radius: 4px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background: var(--channel-bg);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--hover-bg);
+        }
+
+        /* ===== PROFILE SETUP ===== */
+        .profile-setup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--tertiary-bg);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .profile-setup.active {
+            display: flex;
+        }
+
+        .profile-setup-content {
+            background: var(--secondary-bg);
+            border-radius: 8px;
+            padding: 40px;
+            width: 440px;
+            text-align: center;
+        }
+
+        .profile-setup-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .profile-setup-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .profile-setup-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* ===== UTILITIES ===== */
+        .hidden {
+            display: none !important;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
+
+        .gap {
+            gap: 8px;
+        }
+
+        .relative {
+            position: relative;
+        }
+
+        @media (max-width: 768px) {
+            .home-content {
+                grid-template-columns: 1fr;
+            }
+
+            .modal {
+                width: 90vw;
+                max-width: 440px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div id="app">
-        <nav>
-            <h1>Hangout</h1>
-            <div id="server-list">
-                <!-- Placeholder for server list -->
-            </div>
-            <div id="friends-list">
-                <!-- Placeholder for friends list -->
-            </div>
-        </nav>
-        <main>
-            <section id="channel">
-                <h2>Channel</h2>
-                <div id="messages">
-                    <!-- Placeholder for messages -->
+    <!-- PROFILE SETUP MODAL -->
+    <div id="profileSetupModal" class="profile-setup active">
+        <div class="profile-setup-content">
+            <h2 class="profile-setup-title">Welcome to Hangout</h2>
+            <p class="profile-setup-desc">Create your profile to get started</p>
+            <form class="profile-setup-form" id="profileSetupForm">
+                <div class="form-group">
+                    <label class="form-label">Display Name</label>
+                    <input type="text" class="form-input" id="displayNameInput" placeholder="Enter your display name" required>
                 </div>
-                <input type="text" id="message-input" placeholder="Type a message...">
-                <button id="send-button">Send</button>
-            </section>
-            <section id="direct-messages">
-                <h2>Direct Messages</h2>
-                <div id="dm-list">
-                    <!-- Placeholder for direct messages -->
+                <div class="form-group">
+                    <label class="form-label">Profile Description (Optional)</label>
+                    <input type="text" class="form-input" id="profileDescInput" placeholder="What's your vibe?">
                 </div>
-            </section>
-        </main>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Profile</button>
+            </form>
+        </div>
     </div>
-    <script src="app.js"></script>
+
+    <!-- ADD SERVER MODAL -->
+    <div id="addServerModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Add Server</h2>
+            </div>
+            <div class="modal-content">
+                <div class="form-group">
+                    <label class="form-label">Server Name</label>
+                    <input type="text" class="form-input" id="serverNameInput" placeholder="My Awesome Server">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Server Description</label>
+                    <input type="text" class="form-input" id="serverDescInput" placeholder="What's this server about?">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addServerModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="createServer()">Create Server</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD CHANNEL MODAL -->
+    <div id="addChannelModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Add Channel</h2>
+            </div>
+            <div class="modal-content">
+                <div class="form-group">
+                    <label class="form-label">Channel Name</label>
+                    <input type="text" class="form-input" id="channelNameInput" placeholder="general">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Channel Type</label>
+                    <select id="channelTypeSelect" class="form-input" style="cursor: pointer;">
+                        <option value="text">Text Channel</option>
+                        <option value="voice">Voice Channel</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addChannelModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="createChannel()">Create Channel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD FRIEND MODAL -->
+    <div id="addFriendModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Add Friend</h2>
+            </div>
+            <div class="modal-content">
+                <div class="form-group">
+                    <label class="form-label">Friend GUID or Username</label>
+                    <input type="text" class="form-input" id="friendIdentifierInput" placeholder="Paste friend's GUID or username">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addFriendModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addFriend()">Send Friend Request</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div class="app-container">
+        <!-- SIDEBAR -->
+        <div class="sidebar" id="sidebar">
+            <button class="server-icon home" onclick="showHome()" title="Home">
+                 🏠
+            </button>
+            <div class="server-separator"></div>
+            <div id="serverList"></div>
+            <button class="server-icon add" onclick="openModal('addServerModal')" title="Add Server">+</button>
+        </div>
+
+        <!-- DM PANEL -->
+        <div id="dmPanel" class="dm-panel">
+            <div class="dm-header">
+                <span class="dm-header-title">Direct Messages</span>
+                <button class="btn-icon" onclick="openModal('addFriendModal')" title="Add Friend">
+                    ➕
+                </button>
+            </div>
+            <div class="dm-list" id="dmList"></div>
+        </div>
+
+        <!-- SERVER PANEL -->
+        <div id="serverPanel" class="server-panel">
+            <div class="server-header">
+                <span class="server-name" id="serverHeaderName">Home</span>
+                <div class="server-actions">
+                    <button class="btn-icon" id="addChannelBtn" style="display: none;" onclick="openModal('addChannelModal')" title="Add Channel">
+                        ➕
+                    </button>
+                    <button class="btn-icon" onclick="toggleServerMenu()" title="Server Menu">
+                        ⋯
+                    </button>
+                </div>
+            </div>
+            <div class="channels-container" id="channelsContainer"></div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+            <!-- HOME VIEW -->
+            <div id="homeView" class="home-view hidden">
+                <div class="home-header">
+                    <h1 class="home-title">Welcome back!</h1>
+                </div>
+                <div class="home-content">
+                    <!-- SERVERS SECTION -->
+                    <div class="section">
+                        <div class="section-title">Your Servers</div>
+                        <div class="section-list" id="homeServersSection"></div>
+                    </div>
+
+                    <!-- FRIENDS SECTION -->
+                    <div class="section">
+                        <div class="section-title">Friends</div>
+                        <div class="section-list" id="homeFriendsSection"></div>
+                    </div>
+
+                    <!-- ONLINE SECTION -->
+                    <div class="section">
+                        <div class="section-title">Online Friends</div>
+                        <div class="section-subtitle">You have no friends online</div>
+                    </div>
+
+                    <!-- ABOUT SECTION -->
+                    <div class="section">
+                        <div class="section-title">About Hangout</div>
+                        <div class="section-subtitle">A modern community chat platform for everyone.</div>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">Built with modern web technologies for speed and reliability.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHANNEL VIEW -->
+            <div id="channelView" class="channel-view hidden">
+                <div class="channel-header">
+                    <div class="channel-info">
+                        <div class="channel-type-icon" id="channelTypeIcon">#</div>
+                        <span style="font-size: 16px; font-weight: 600;">
+                            <span id="channelViewTitle">general</span>
+                            <div class="channel-topic" id="channelTopic"></div>
+                        </span>
+                    </div>
+                    <div class="channel-actions">
+                        <button class="btn-icon" title="Search Messages">🔍</button>
+                        <button class="btn-icon" title="Member List">👥</button>
+                        <button class="btn-icon" title="Options">⋯</button>
+                    </div>
+                </div>
+
+                <div class="messages-container" id="messagesContainer"></div>
+
+                <div class="message-input-container">
+                    <div class="message-input-wrapper">
+                        <div class="input-actions">
+                            <button class="input-btn" title="Add Attachment">📎</button>
+                        </div>
+                        <textarea class="input-field" id="messageInput" placeholder="Message #general" rows="1"></textarea>
+                        <button class="input-btn" onclick="sendMessage()" title="Send Message">📤</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DM VIEW -->
+            <div id="dmView" class="channel-view hidden">
+                <div class="channel-header">
+                    <div class="channel-info">
+                        <div class="channel-type-icon" style="color: var(--text-primary);">💬</div>
+                        <span style="font-size: 16px; font-weight: 600;" id="dmViewTitle">Direct Message</span>
+                    </div>
+                    <div class="channel-actions">
+                        <button class="btn-icon" title="Search Messages">🔍</button>
+                        <button class="btn-icon" title="Call">☎️</button>
+                        <button class="btn-icon" title="Options">⋯</button>
+                    </div>
+                </div>
+
+                <div class="messages-container" id="dmMessagesContainer"></div>
+
+                <div class="message-input-container">
+                    <div class="message-input-wrapper">
+                        <div class="input-actions">
+                            <button class="input-btn" title="Add Attachment">📎</button>
+                        </div>
+                        <textarea class="input-field" id="dmMessageInput" placeholder="Message @friend" rows="1"></textarea>
+                        <button class="input-btn" onclick="sendDirectMessage()" title="Send Message">📤</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== PROFILE & DATA MANAGEMENT =====
+        let userProfile = null;
+        let servers = [];
+        let friends = [];
+        let directMessages = {};
+        let currentSelectedServer = null;
+        let currentSelectedChannel = null;
+        let currentSelectedFriend = null;
+
+        // Initialize app
+        function init() {
+            loadUserProfile();
+        }
+
+        function loadUserProfile() {
+            const storedProfile = localStorage.getItem('userProfile');
+            if (storedProfile) {
+                userProfile = JSON.parse(storedProfile);
+                closeProfileSetup();
+                loadServers();
+            }
+        }
+
+        function createUserProfile() {
+            const displayName = document.getElementById('displayNameInput').value.trim();
+            const profileDesc = document.getElementById('profileDescInput').value.trim();
+
+            if (!displayName) {
+                alert('Please enter a display name');
+                return;
+            }
+
+            userProfile = {
+                guid: generateGUID(),
+                displayName: displayName,
+                description: profileDesc || 'No description',
+                profileIcon: displayName.charAt(0).toUpperCase(),
+                createdAt: new Date().toISOString()
+            };
+
+            localStorage.setItem('userProfile', JSON.stringify(userProfile));
+            console.log('Profile created:', userProfile);
+
+            // Initialize default server
+            createDefaultServer();
+            closeProfileSetup();
+            loadServers();
+        }
+
+        function createDefaultServer() {
+            const defaultServer = {
+                guid: generateGUID(),
+                name: 'My Community',
+                description: 'Your first server',
+                icon: 'MC',
+                ownerId: userProfile.guid,
+                channels: [
+                    {
+                        guid: generateGUID(),
+                        name: 'general',
+                        type: 'text',
+                        topic: 'General discussion',
+                        serverId: null
+                    },
+                    {
+                        guid: generateGUID(),
+                        name: 'random',
+                        type: 'text',
+                        topic: 'Off-topic chat',
+                        serverId: null
+                    },
+                    {
+                        guid: generateGUID(),
+                        name: 'voice',
+                        type: 'voice',
+                        topic: 'General voice channel',
+                        serverId: null
+                    }
+                ],
+                members: [userProfile.guid],
+                createdAt: new Date().toISOString()
+            };
+
+            defaultServer.channels.forEach(ch => ch.serverId = defaultServer.guid);
+            servers.push(defaultServer);
+            localStorage.setItem('servers', JSON.stringify(servers));
+        }
+
+        function generateGUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // ===== MODAL MANAGEMENT =====
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function closeProfileSetup() {
+            document.getElementById('profileSetupModal').classList.remove('active');
+        }
+
+        // ===== SERVER MANAGEMENT =====
+        function loadServers() {
+            const stored = localStorage.getItem('servers');
+            servers = stored ? JSON.parse(stored) : [];
+
+            if (servers.length === 0 && userProfile) {
+                createDefaultServer();
+            }
+
+            renderServerList();
+            loadFriendsFromStorage();
+        }
+
+        function createServer() {
+            const name = document.getElementById('serverNameInput').value.trim();
+            const desc = document.getElementById('serverDescInput').value.trim();
+
+            if (!name) {
+                alert('Please enter a server name');
+                return;
+            }
+
+            const newServer = {
+                guid: generateGUID(),
+                name: name,
+                description: desc || 'A great server',
+                icon: name.substring(0, 2).toUpperCase(),
+                ownerId: userProfile.guid,
+                channels: [
+                    {
+                        guid: generateGUID(),
+                        name: 'general',
+                        type: 'text',
+                        topic: 'General discussion',
+                        serverId: null
+                    }
+                ],
+                members: [userProfile.guid],
+                createdAt: new Date().toISOString()
+            };
+
+            newServer.channels.forEach(ch => ch.serverId = newServer.guid);
+            servers.push(newServer);
+            localStorage.setItem('servers', JSON.stringify(servers));
+
+            document.getElementById('serverNameInput').value = '';
+            document.getElementById('serverDescInput').value = '';
+            closeModal('addServerModal');
+
+            renderServerList();
+        }
+
+        function renderServerList() {
+            const sidebarList = document.getElementById('serverList');
+            sidebarList.innerHTML = '';
+
+            servers.forEach(server => {
+                const btn = document.createElement('button');
+                btn.className = 'server-icon';
+                if (currentSelectedServer?.guid === server.guid) {
+                    btn.classList.add('active');
+                }
+                btn.textContent = server.icon;
+                btn.title = server.name;
+                btn.onclick = () => selectServer(server);
+                sidebarList.appendChild(btn);
+            });
+
+            renderHomeServersSection();
+        }
+
+        function selectServer(server) {
+            currentSelectedServer = server;
+            currentSelectedChannel = null;
+            currentSelectedFriend = null;
+
+            document.getElementById('homeView').classList.add('hidden');
+            document.getElementById('channelView').classList.remove('hidden');
+            document.getElementById('dmView').classList.add('hidden');
+            document.getElementById('dmPanel').classList.remove('active');
+            document.getElementById('serverPanel').classList.remove('hidden');
+            document.getElementById('addChannelBtn').style.display = 'block';
+
+            document.getElementById('serverHeaderName').textContent = server.name;
+            renderChannelList();
+            renderServerList();
+
+            if (server.channels.length > 0) {
+                selectChannel(server.channels[0]);
+            }
+        }
+
+        // ===== CHANNEL MANAGEMENT =====
+        function renderChannelList() {
+            const container = document.getElementById('channelsContainer');
+            container.innerHTML = '';
+
+            const categories = {
+                text: { name: 'Text Channels', icon: '#', channels: [] },
+                voice: { name: 'Voice Channels', icon: '🔊', channels: [] }
+            };
+
+            currentSelectedServer.channels.forEach(ch => {
+                if (categories[ch.type]) {
+                    categories[ch.type].channels.push(ch);
+                }
+            });
+
+            ['text', 'voice'].forEach(type => {
+                const category = categories[type];
+                if (category.channels.length === 0) return;
+
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'channel-category';
+
+                const header = document.createElement('div');
+                header.className = 'category-header';
+                header.innerHTML = `
+                    <span class="category-icon">▼</span>
+                    <span>${category.name}</span>
+                    <button class="category-add" onclick="openModal('addChannelModal')" title="Add Channel">+</button>
+                `;
+
+                const channelsDiv = document.createElement('div');
+                category.channels.forEach(channel => {
+                    const channelEl = document.createElement('div');
+                    channelEl.className = 'channel';
+                    if (currentSelectedChannel?.guid === channel.guid) {
+                        channelEl.classList.add('active');
+                    }
+                    channelEl.innerHTML = `<span class="channel-icon">${channel.type === 'voice' ? '🔊' : '#'}</span><span>${channel.name}</span>`;
+                    channelEl.onclick = () => selectChannel(channel);
+                    channelsDiv.appendChild(channelEl);
+                });
+
+                categoryDiv.appendChild(header);
+                categoryDiv.appendChild(channelsDiv);
+                container.appendChild(categoryDiv);
+            });
+        }
+
+        function createChannel() {
+            const name = document.getElementById('channelNameInput').value.trim();
+            const type = document.getElementById('channelTypeSelect').value;
+
+            if (!name) {
+                alert('Please enter a channel name');
+                return;
+            }
+
+            const newChannel = {
+                guid: generateGUID(),
+                name: name.toLowerCase(),
+                type: type,
+                topic: '',
+                serverId: currentSelectedServer.guid,
+                messages: []
+            };
+
+            // Register voice channel with voice relay server
+            if (type === 'voice') {
+                // HOOK: Call voice relay service to register channel
+                console.log('HOOK: Register voice channel with relay server:', newChannel);
+                // TODO: Implement voice relay registration
+                // Example: await fetch('http://localhost:3001/channels', { method: 'POST', body: JSON.stringify(newChannel) })
+            }
+
+            currentSelectedServer.channels.push(newChannel);
+            localStorage.setItem('servers', JSON.stringify(servers));
+
+            document.getElementById('channelNameInput').value = '';
+            closeModal('addChannelModal');
+
+            renderChannelList();
+        }
+
+        function selectChannel(channel) {
+            currentSelectedChannel = channel;
+            currentSelectedFriend = null;
+
+            document.getElementById('homeView').classList.add('hidden');
+            document.getElementById('channelView').classList.remove('hidden');
+            document.getElementById('dmView').classList.add('hidden');
+            document.getElementById('dmPanel').classList.remove('active');
+
+            document.getElementById('channelViewTitle').textContent = channel.name;
+            document.getElementById('channelTopic').textContent = channel.topic || 'No topic';
+
+            const icon = channel.type === 'voice' ? '🔊' : '#';
+            document.getElementById('channelTypeIcon').textContent = icon;
+            document.getElementById('messageInput').placeholder = `Message #${channel.name}`;
+
+            renderChannelMessages();
+            renderChannelList();
+        }
+
+        // ===== MESSAGING =====
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+
+            if (!text || !currentSelectedChannel) return;
+
+            if (!currentSelectedChannel.messages) {
+                currentSelectedChannel.messages = [];
+            }
+
+            const message = {
+                guid: generateGUID(),
+                authorId: userProfile.guid,
+                author: userProfile.displayName,
+                authorIcon: userProfile.profileIcon,
+                content: text,
+                timestamp: new Date().toISOString(),
+                channelId: currentSelectedChannel.guid
+            };
+
+            currentSelectedChannel.messages.push(message);
+            localStorage.setItem('servers', JSON.stringify(servers));
+
+            // HOOK: Send message to relay server
+            console.log('HOOK: Send message to relay server:', message);
+            // TODO: Implement message relay
+            // Example: await fetch('http://localhost:3000/messages', { method: 'POST', body: JSON.stringify(message) })
+
+            input.value = '';
+            input.style.height = 'auto';
+            renderChannelMessages();
+        }
+
+        function renderChannelMessages() {
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = '';
+
+            if (!currentSelectedChannel.messages || currentSelectedChannel.messages.length === 0) {
+                container.innerHTML = '<div style="padding: 20px; color: var(--text-muted); text-align: center;">No messages yet. Start the conversation!</div>';
+                return;
+            }
+
+            let lastAuthorId = null;
+            currentSelectedChannel.messages.forEach((msg, index) => {
+                const isCompact = lastAuthorId === msg.authorId;
+                const messageGroup = document.createElement('div');
+                messageGroup.className = `message-group ${isCompact ? 'compact' : ''}`;
+
+                const timestamp = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                messageGroup.innerHTML = `
+                    <div class="message-avatar">${msg.authorIcon}</div>
+                    <div class="messages-content">
+                        ${!isCompact ? `<div class="message-header">
+                            <span class="message-author">${msg.author}</span>
+                            <span class="message-timestamp">${timestamp}</span>
+                        </div>` : ''}
+                        <div class="message-text">${escapeHtml(msg.content)}</div>
+                    </div>
+                `;
+
+                container.appendChild(messageGroup);
+                lastAuthorId = msg.authorId;
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // ===== DIRECT MESSAGES =====
+        function loadFriendsFromStorage() {
+            const stored = localStorage.getItem('friends');
+            friends = stored ? JSON.parse(stored) : [];
+            renderFriendsList();
+            renderHomeFriendsSection();
+        }
+
+        function addFriend() {
+            const identifier = document.getElementById('friendIdentifierInput').value.trim();
+
+            if (!identifier) {
+                alert('Please enter a friend\'s GUID or username');
+                return;
+            }
+
+            // In a real app, this would validate with the relay server
+            const newFriend = {
+                guid: identifier.includes('-') ? identifier : generateGUID(),
+                displayName: identifier,
+                profileIcon: identifier.charAt(0).toUpperCase(),
+                status: 'offline',
+                description: 'A friend',
+                messages: []
+            };
+
+            friends.push(newFriend);
+            localStorage.setItem('friends', JSON.stringify(friends));
+
+            // HOOK: Send friend request to relay server
+            console.log('HOOK: Send friend request to relay server:', newFriend);
+            // TODO: Implement friend request relay
+            // Example: await fetch('http://localhost:3000/friends', { method: 'POST', body: JSON.stringify(newFriend) })
+
+            document.getElementById('friendIdentifierInput').value = '';
+            closeModal('addFriendModal');
+
+            renderFriendsList();
+            renderHomeFriendsSection();
+        }
+
+        function renderFriendsList() {
+            const dmList = document.getElementById('dmList');
+            dmList.innerHTML = '';
+
+            friends.forEach(friend => {
+                const dmItem = document.createElement('div');
+                dmItem.className = 'dm-item';
+                if (currentSelectedFriend?.guid === friend.guid) {
+                    dmItem.classList.add('active');
+                }
+
+                const statusColor = friend.status === 'online' ? 'online' : 'offline';
+                dmItem.innerHTML = `
+                    <div class="dm-avatar" style="position: relative;">
+                        ${friend.profileIcon}
+                        <div class="status-indicator ${statusColor}"></div>
+                    </div>
+                    <span>${friend.displayName}</span>
+                `;
+
+                dmItem.onclick = () => selectFriend(friend);
+                dmList.appendChild(dmItem);
+            });
+        }
+
+        function renderHomeFriendsSection() {
+            const section = document.getElementById('homeFriendsSection');
+            section.innerHTML = '';
+
+            if (friends.length === 0) {
+                section.innerHTML = '<div style="padding: 12px; color: var(--text-secondary); font-size: 13px;">No friends yet. Add someone!</div>';
+                return;
+            }
+
+            friends.slice(0, 5).forEach(friend => {
+                const item = document.createElement('div');
+                item.className = 'friend-item';
+                item.innerHTML = `
+                    <div class="friend-avatar" style="position: relative;">
+                        ${friend.profileIcon}
+                        <div class="status-indicator ${friend.status || 'offline'}"></div>
+                    </div>
+                    <div class="server-item-info">
+                        <div class="friend-name">${friend.displayName}</div>
+                    </div>
+                `;
+                item.onclick = () => selectFriend(friend);
+                section.appendChild(item);
+            });
+        }
+
+        function selectFriend(friend) {
+            currentSelectedFriend = friend;
+            currentSelectedServer = null;
+            currentSelectedChannel = null;
+
+            document.getElementById('homeView').classList.add('hidden');
+            document.getElementById('channelView').classList.add('hidden');
+            document.getElementById('dmView').classList.remove('hidden');
+            document.getElementById('dmPanel').classList.add('active');
+            document.getElementById('serverPanel').classList.add('hidden');
+
+            document.getElementById('dmViewTitle').textContent = friend.displayName;
+            document.getElementById('dmMessageInput').placeholder = `Message @${friend.displayName}`;
+
+            renderDirectMessages();
+            renderFriendsList();
+        }
+
+        function sendDirectMessage() {
+            const input = document.getElementById('dmMessageInput');
+            const text = input.value.trim();
+
+            if (!text || !currentSelectedFriend) return;
+
+            if (!currentSelectedFriend.messages) {
+                currentSelectedFriend.messages = [];
+            }
+
+            const message = {
+                guid: generateGUID(),
+                authorId: userProfile.guid,
+                author: userProfile.displayName,
+                authorIcon: userProfile.profileIcon,
+                content: text,
+                timestamp: new Date().toISOString(),
+                recipientId: currentSelectedFriend.guid
+            };
+
+            currentSelectedFriend.messages.push(message);
+            localStorage.setItem('friends', JSON.stringify(friends));
+
+            // HOOK: Send DM to relay server
+            console.log('HOOK: Send DM to relay server:', message);
+            // TODO: Implement DM relay
+            // Example: await fetch('http://localhost:3000/dms', { method: 'POST', body: JSON.stringify(message) })
+            // Also setup websocket listener for incoming messages
+            // Example: ws.addEventListener('message', (event) => { handleIncomingDM(JSON.parse(event.data)) })
+
+            input.value = '';
+            input.style.height = 'auto';
+            renderDirectMessages();
+        }
+
+        function renderDirectMessages() {
+            const container = document.getElementById('dmMessagesContainer');
+            container.innerHTML = '';
+
+            if (!currentSelectedFriend.messages || currentSelectedFriend.messages.length === 0) {
+                container.innerHTML = '<div style="padding: 20px; color: var(--text-muted); text-align: center;">No messages yet. Say hello!</div>';
+                return;
+            }
+
+            let lastAuthorId = null;
+            currentSelectedFriend.messages.forEach((msg) => {
+                const isCompact = lastAuthorId === msg.authorId;
+                const messageGroup = document.createElement('div');
+                messageGroup.className = `message-group ${isCompact ? 'compact' : ''}`;
+
+                const timestamp = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                messageGroup.innerHTML = `
+                    <div class="message-avatar">${msg.authorIcon}</div>
+                    <div class="messages-content">
+                        ${!isCompact ? `<div class="message-header">
+                            <span class="message-author">${msg.author}</span>
+                            <span class="message-timestamp">${timestamp}</span>
+                        </div>` : ''}
+                        <div class="message-text">${escapeHtml(msg.content)}</div>
+                    </div>
+                `;
+
+                container.appendChild(messageGroup);
+                lastAuthorId = msg.authorId;
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // ===== HOME VIEW =====
+        function showHome() {
+            currentSelectedServer = null;
+            currentSelectedChannel = null;
+            currentSelectedFriend = null;
+
+            document.getElementById('homeView').classList.remove('hidden');
+            document.getElementById('channelView').classList.add('hidden');
+            document.getElementById('dmView').classList.add('hidden');
+            document.getElementById('dmPanel').classList.remove('active');
+            document.getElementById('serverPanel').classList.add('hidden');
+            document.getElementById('addChannelBtn').style.display = 'none';
+
+            renderServerList();
+        }
+
+        function renderHomeServersSection() {
+            const section = document.getElementById('homeServersSection');
+            section.innerHTML = '';
+
+            if (servers.length === 0) {
+                section.innerHTML = '<div style="padding: 12px; color: var(--text-secondary); font-size: 13px;">No servers yet. Create one!</div>';
+                return;
+            }
+
+            servers.forEach(server => {
+                const item = document.createElement('div');
+                item.className = 'server-item';
+                item.innerHTML = `
+                    <div class="server-item-icon">${server.icon}</div>
+                    <div class="server-item-info">
+                        <div class="server-item-name">${server.name}</div>
+                        <div class="server-item-desc">${server.description}</div>
+                    </div>
+                `;
+                item.onclick = () => selectServer(server);
+                section.appendChild(item);
+            });
+        }
+
+        // ===== UTILITIES =====
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function toggleServerMenu() {
+            // TODO: Implement server menu (settings, invite, etc.)
+            alert('Server menu coming soon!');
+        }
+
+        // ===== AUTO-RESIZE TEXTAREA =====
+        document.addEventListener('input', (e) => {
+            if (e.target.classList.contains('input-field')) {
+                e.target.style.height = 'auto';
+                e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
+            }
+        });
+
+        // ===== FORM HANDLERS =====
+        document.getElementById('profileSetupForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            createUserProfile();
+        });
+
+        document.getElementById('messageInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        document.getElementById('dmMessageInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendDirectMessage();
+            }
+        });
+
+        // Close modals on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+
+        // Initialize on load
+        init();
+    </script>
 </body>
 </html>
